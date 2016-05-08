@@ -5,34 +5,73 @@ def get_mnist():
     """ Prepare mnist data """
     return input_data.read_data_sets("MNIST_data/", one_hot=True)
 
-mnist = get_mnist()
+def make_softmax():
+    """ Official example turned into function """
+    mnist = get_mnist()
 
-x = tf.placeholder(tf.float32, [None, 784])
+    # Declare variables
+    x = tf.placeholder(tf.float32, [None, 784])
+    W = tf.Variable(tf.zeros([784, 10]), name = 'W')
+    b = tf.Variable(tf.zeros([10]), name = 'b')
+    y = tf.nn.softmax(tf.matmul(x, W) + b)
+    y_ = tf.placeholder(tf.float32, [None, 10])
 
-W = tf.Variable(tf.zeros([784, 10]))
-b = tf.Variable(tf.zeros([10]))
+    # Training concepts
+    cross_entropy = tf.reduce_mean(-tf.reduce_sum(y_ * tf.log(y), reduction_indices=[1]))
+    train_step = tf.train.GradientDescentOptimizer(0.5).minimize(cross_entropy)
 
-y = tf.nn.softmax(tf.matmul(x, W) + b)
+    init = tf.initialize_all_variables()
 
-y_ = tf.placeholder(tf.float32, [None, 10])
+    saver = tf.train.Saver()
 
-cross_entropy = tf.reduce_mean(-tf.reduce_sum(y_ * tf.log(y), reduction_indices=[1]))
+    sess = tf.Session()
+    sess.run(init)
 
-train_step = tf.train.GradientDescentOptimizer(0.5).minimize(cross_entropy)
+    # Train with batches
+    for i in range(1000):
+        batch_xs, batch_ys = mnist.train.next_batch(500)
+        sess.run(train_step, feed_dict={x: batch_xs, y_: batch_ys})
 
-init = tf.initialize_all_variables()
+    # Try to save the results
+    save_path = saver.save(sess, 'tmp/yo.ckpt')
 
-sess = tf.Session()
-sess.run(init)
+    print 'something saved in:', save_path
 
-for i in range(1000):
-    batch_xs, batch_ys = mnist.train.next_batch(500)
-    sess.run(train_step, feed_dict={x: batch_xs, y_: batch_ys})
+def test_softmax():
+    """ Load model from disk """
+    mnist = get_mnist()
 
-correct_prediction = tf.equal(tf.argmax(y,1), tf.argmax(y_,1))
-accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+    # This clears TF variable names and allows saving and loading
+    # withing one python session
+    tf.reset_default_graph()
+
+    # Declare variables
+    x = tf.placeholder(tf.float32, [None, 784])
+    W = tf.Variable(tf.zeros([784, 10]), name = 'W')
+    b = tf.Variable(tf.zeros([10]), name = 'b')
+    y = tf.nn.softmax(tf.matmul(x, W) + b)
+    y_ = tf.placeholder(tf.float32, [None, 10])
+
+    # Training concepts
+    cross_entropy = tf.reduce_mean(-tf.reduce_sum(y_ * tf.log(y), reduction_indices=[1]))
+    train_step = tf.train.GradientDescentOptimizer(0.5).minimize(cross_entropy)
+
+    saver = tf.train.Saver()
+
+    sess = tf.Session()
+
+    print 'Loading...'
+    saver.restore(sess, 'tmp/yo.ckpt')
+    print 'Done'
+
+    correct_prediction = tf.equal(tf.argmax(y,1), tf.argmax(y_,1))
+    accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
 
-score = sess.run(accuracy, feed_dict={x: mnist.test.images, y_: mnist.test.labels})
-print 'achieved accuracy: ', score
+    score = sess.run(accuracy, feed_dict={x: mnist.test.images, y_: mnist.test.labels})
+    print 'achieved accuracy: ', score
 
+if __name__ == '__main__':
+    """ This isi sihT """
+    make_softmax()
+    test_softmax()

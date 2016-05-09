@@ -6,9 +6,12 @@ def get_mnist():
     """ Prepare mnist data """
     return input_data.read_data_sets("MNIST_data/", one_hot=True)
 
-def make_softmax(nof_steps = 100):
+def make_softmax(batch_size = 100):
     """ Official example turned into function """
     mnist = get_mnist()
+
+    # This was tested
+    nof_steps = 7000
 
     # Declare variables
     x = tf.placeholder(tf.float32, [None, 784])
@@ -30,7 +33,7 @@ def make_softmax(nof_steps = 100):
 
     # Train with batches
     for i in range(nof_steps):
-        batch_xs, batch_ys = mnist.train.next_batch(500)
+        batch_xs, batch_ys = mnist.train.next_batch(batch_size)
         sess.run(train_step, feed_dict={x: batch_xs, y_: batch_ys})
 
     # Try to save the results
@@ -40,7 +43,7 @@ def make_softmax(nof_steps = 100):
     # withing one python session
     tf.reset_default_graph()
 
-    print 'something saved in:', save_path, 'with {} steps'.format(nof_steps)
+    print 'something saved in:', save_path, 'with {} batch size'.format(batch_size)
 
 def test_softmax():
     """ Load model from disk """
@@ -78,9 +81,9 @@ def test_softmax():
 if __name__ == '__main__':
     """ This isi sihT """
     scores = []
-    steps = [100 * it for it in range(1, 200)]
+    batch_sizes = [20 * it for it in range(1, 50)]
 
-    for howmany in steps:
+    for howmany in batch_sizes:
         make_softmax(howmany)
         scores.append(test_softmax())
 

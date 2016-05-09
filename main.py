@@ -1,3 +1,4 @@
+import pickle
 import tensorflow as tf
 from tensorflow.examples.tutorials.mnist import input_data
 
@@ -5,7 +6,7 @@ def get_mnist():
     """ Prepare mnist data """
     return input_data.read_data_sets("MNIST_data/", one_hot=True)
 
-def make_softmax():
+def make_softmax(nof_steps = 100):
     """ Official example turned into function """
     mnist = get_mnist()
 
@@ -28,22 +29,22 @@ def make_softmax():
     sess.run(init)
 
     # Train with batches
-    for i in range(1000):
+    for i in range(nof_steps):
         batch_xs, batch_ys = mnist.train.next_batch(500)
         sess.run(train_step, feed_dict={x: batch_xs, y_: batch_ys})
 
     # Try to save the results
     save_path = saver.save(sess, 'tmp/yo.ckpt')
 
-    print 'something saved in:', save_path
+    # This clears TF variable names and allows saving and loading
+    # withing one python session
+    tf.reset_default_graph()
+
+    print 'something saved in:', save_path, 'with {} steps'.format(nof_steps)
 
 def test_softmax():
     """ Load model from disk """
     mnist = get_mnist()
-
-    # This clears TF variable names and allows saving and loading
-    # withing one python session
-    tf.reset_default_graph()
 
     # Declare variables
     x = tf.placeholder(tf.float32, [None, 784])
@@ -60,18 +61,28 @@ def test_softmax():
 
     sess = tf.Session()
 
-    print 'Loading...'
     saver.restore(sess, 'tmp/yo.ckpt')
-    print 'Done'
 
     correct_prediction = tf.equal(tf.argmax(y,1), tf.argmax(y_,1))
     accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
+    # This clears TF variable names and allows saving and loading
+    # withing one python session
+    tf.reset_default_graph()
 
     score = sess.run(accuracy, feed_dict={x: mnist.test.images, y_: mnist.test.labels})
     print 'achieved accuracy: ', score
 
+    return score
+
 if __name__ == '__main__':
     """ This isi sihT """
-    make_softmax()
-    test_softmax()
+    scores = []
+    steps = [100 * it for it in range(1, 200)]
+
+    for howmany in steps:
+        make_softmax(howmany)
+        scores.append(test_softmax())
+
+        with open('scores.pickle', 'wb') as fin:
+              pickle.dump(scores, fin)
